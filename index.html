@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#22083F" />
+  <meta name="description" content="DomoNow · Dashboard de Usabilidad por Copropiedad" />
+  <title>DomoNow · Dashboard de Usabilidad por Copropiedad</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/src/styles.css" />
+
+  <script async src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script async src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+  <script type="module" src="/src/main.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand" aria-label="DomoNow Dashboard de Usabilidad">
+      <img src="/public/domonow-logo.webp" alt="DomoNow" class="brand-logo" />
+      <div class="brand-text">
+        <span class="name">DomoNow</span>
+        <span class="tag">Dashboard de Usabilidad</span>
+      </div>
+    </div>
+
+    <div class="topbar-right">
+      <span class="datebadge"><span class="dot"></span>Corte: <span id="cutoffDate">—</span></span>
+      <span class="datebadge">Histórico: <span id="historyCount">—</span></span>
+      <span class="source-status" id="sourceStatus">SharePoint sin vincular</span>
+      <button class="top-btn" id="refreshFolderBtn" type="button" title="Leer nuevamente los archivos del folder vinculado">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8.1 8.1 0 0 0-15.5-2M4 4v5h5M4 13a8.1 8.1 0 0 0 15.5 2M20 20v-5h-5"/></svg>
+        Actualizar desde SharePoint
+      </button>
+      <button class="top-btn" id="linkFolderBtn" type="button" title="Vincular la carpeta sincronizada por OneDrive">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7h6l2 2h10v10H3z"/><path d="M3 7V5h7l2 2"/></svg>
+        Vincular carpeta
+      </button>
+      <button class="top-btn" id="importBtn" type="button" title="Importar uno o varios archivos Excel/CSV">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M7 8l5-5 5 5M5 21h14a2 2 0 0 0 2-2v-4M3 15v4a2 2 0 0 0 2 2"/></svg>
+        Importar
+      </button>
+      <input id="fileInput" type="file" multiple accept=".xlsx,.xls,.csv" hidden />
+    </div>
+  </header>
+
+  <main>
+    <section class="page-head">
+      <div>
+        <h1>Usabilidad por copropiedad</h1>
+        <p>Selecciona una copropiedad para ver su cumplimiento, apartamentos inactivos para enfoque directo y uso por módulo.</p>
+      </div>
+    </section>
+
+    <section class="source-card" aria-label="Fuente de datos">
+      <div class="source-card-copy">
+        <div class="source-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><path d="M4 5h7l2 2h7v12H4z"/><path d="M7 11h10M7 15h7"/></svg>
+        </div>
+        <div>
+          <div class="source-title">Fuente de datos: carpeta SharePoint sincronizada por OneDrive</div>
+          <div class="source-desc">Vincula una vez la carpeta que contiene los archivos “Base Datos DomoNow …”. Después, el botón Actualizar leerá automáticamente todos los cortes.</div>
+          <div class="source-meta">Última actualización: <strong id="lastUpdate">—</strong></div>
+        </div>
+      </div>
+      <a class="sharepoint-link" href="https://ofimacol.sharepoint.com/:f:/s/ServiciosDomoNow/IgD2p37YuD48RpRgAGmsOO4LAQJ2OoG6BZ5xnPcua-WQXQM?e=1xd348" target="_blank" rel="noopener noreferrer">
+        Abrir SharePoint
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 5h5v5M10 14 19 5M19 14v5H5V5h5"/></svg>
+      </a>
+    </section>
+
+    <section class="selector-card">
+      <div class="field">
+        <label for="propertySelect">Copropiedad</label>
+        <div class="select-wrap">
+          <select id="propertySelect" disabled>
+            <option value="">Sin datos cargados</option>
+          </select>
+        </div>
+      </div>
+      <div class="global-strip">
+        <div class="global-stat"><div class="num tabular" id="globalProperties">–</div><div class="lbl">Copropiedades</div></div>
+        <div class="global-stat"><div class="num tabular" id="globalUnits">–</div><div class="lbl">Apartamentos totales</div></div>
+        <div class="global-stat"><div class="num tabular" id="globalActive">–</div><div class="lbl">Activos en la red</div></div>
+        <div class="global-stat"><div class="num tabular" id="globalAdoption">–</div><div class="lbl">Adopción global</div></div>
+      </div>
+    </section>
+
+    <section class="kpi-grid" aria-label="Indicadores principales">
+      <article class="kpi k-purple">
+        <div class="kpi-top">
+          <span class="kpi-label">Cumplimiento general</span>
+          <span class="kpi-icon"><svg viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></svg></span>
+        </div>
+        <div class="kpi-value tabular" id="kpiGeneral">–%</div>
+        <div class="kpi-sub" id="kpiGeneralSub">— apartamentos usando la plataforma</div>
+      </article>
+
+      <article class="kpi k-green">
+        <div class="kpi-top">
+          <span class="kpi-label">Apartamentos activos</span>
+          <span class="kpi-icon"><svg viewBox="0 0 24 24"><path d="M4 19V9M10 19V5M16 19v-7M22 19H2"/></svg></span>
+        </div>
+        <div class="kpi-value tabular" id="kpiActive">–</div>
+        <div class="kpi-sub">de <b id="kpiTotalUnits">–</b> apartamentos totales</div>
+        <div class="metric-row"><span>Avance de adopción</span><strong id="kpiAdoption">–%</strong></div>
+        <div class="progress-track"><div class="progress-fill" id="adoptionProgress"></div></div>
+      </article>
+
+      <article class="kpi k-red">
+        <div class="kpi-top">
+          <span class="kpi-label">Requieren enfoque</span>
+          <span class="kpi-icon"><svg viewBox="0 0 24 24"><path d="M12 9v4M12 17h.01M10 3h4l8 15H2z"/></svg></span>
+        </div>
+        <div class="kpi-value tabular" id="kpiInactive">–</div>
+        <div class="kpi-sub">apartamentos sin ningún uso registrado</div>
+      </article>
+
+      <article class="kpi k-gold">
+        <div class="kpi-top">
+          <span class="kpi-label">Inicio de sesión único</span>
+          <span class="kpi-icon"><svg viewBox="0 0 24 24"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M15 12H3"/></svg></span>
+        </div>
+        <div class="kpi-value tabular" id="kpiLogin">–</div>
+        <div class="kpi-sub" id="kpiLoginSub">de – apartamentos (–%) iniciaron sesión</div>
+      </article>
+
+      <article class="kpi k-purple">
+        <div class="kpi-top">
+          <span class="kpi-label">Adopción de Accesos</span>
+          <span class="kpi-icon"><svg viewBox="0 0 24 24"><path d="M4 21V3h10v18M14 7h6v14M8 8h2M8 12h2M8 16h2M18 11h.01"/></svg></span>
+        </div>
+        <div class="kpi-value tabular" id="kpiAccess">–</div>
+        <div class="kpi-sub" id="kpiAccessSub">de – apartamentos (–%) — avance combinado de Accesos (Portería + Usuario)</div>
+        <div class="micro-breakdown" id="kpiAccessBreakdown">Portería: – (–%) · Usuario: – (–%)</div>
+      </article>
+    </section>
+
+    <section class="mid-grid">
+      <article class="panel">
+        <h3>Adopción por módulo</h3>
+        <p class="panel-sub">% de apartamentos que usan cada módulo, sobre el total de aptos de la copropiedad</p>
+        <div id="moduleUsageList" class="module-list"></div>
+      </article>
+
+      <article class="panel insight-panel">
+        <div class="eyebrow">Promedio de módulos usados</div>
+        <h3>Profundidad de uso</h3>
+        <p class="panel-sub">Por apartamento, sobre 5 módulos medidos</p>
+        <div class="insight-big"><span id="averageModules">–</span><small>/ 5 módulos</small></div>
+        <div class="insight-rule"></div>
+        <div class="insight-note" id="averageModulesNote">Carga datos para ver la profundidad de uso de la copropiedad.</div>
+      </article>
+    </section>
+
+    <section class="history-shell">
+      <div class="section-head">
+        <div>
+          <div class="eyebrow purple">Histórico persistente</div>
+          <h2>Evolución de usabilidad</h2>
+          <p>Los cortes se conservan en IndexedDB. Un archivo nuevo agrega una fecha; un archivo corregido reemplaza únicamente su mismo corte.</p>
+        </div>
+        <div class="view-toggle" role="group" aria-label="Vista histórica">
+          <button class="view-toggle-btn active" data-history-mode="network" type="button">Red completa</button>
+          <button class="view-toggle-btn" data-history-mode="property" type="button">Copropiedad seleccionada</button>
+        </div>
+      </div>
+
+      <div class="history-grid">
+        <article class="panel chart-panel">
+          <div class="chart-head">
+            <div>
+              <h3>Tendencia por módulo</h3>
+              <p class="panel-sub">% de unidades con actividad por módulo.</p>
+            </div>
+            <span class="chart-scope" id="historyScopeLabel">Red completa</span>
+          </div>
+          <div class="chart-wrap">
+            <canvas id="trendChart" aria-label="Gráfico de tendencia de usabilidad" role="img"></canvas>
+            <div class="chart-empty" id="chartEmpty">Importa al menos dos cortes para visualizar la tendencia.</div>
+          </div>
+        </article>
+
+        <article class="panel history-table-panel">
+          <div class="history-table-head">
+            <div>
+              <h3>Histórico de cortes</h3>
+              <p class="panel-sub">Detalle porcentual de cada fecha conservada.</p>
+            </div>
+            <span class="persistence-pill">No se eliminan cortes al actualizar</span>
+          </div>
+          <div class="table-scroll">
+            <table class="history-table">
+              <thead>
+                <tr>
+                  <th>Fecha</th>
+                  <th class="num">Avance general</th>
+                  <th class="num">Accesos total</th>
+                  <th class="num">Solicitudes</th>
+                  <th class="num">Reservas</th>
+                  <th class="num">Alertas</th>
+                  <th class="num">Paquetería</th>
+                  <th class="num">Δ vs anterior</th>
+                </tr>
+              </thead>
+              <tbody id="historyTableBody">
+                <tr><td colspan="8" class="empty-cell">Sin cortes históricos cargados.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="table-panel">
+      <div class="table-head">
+        <div>
+          <h3>Detalle por apartamento</h3>
+          <p class="panel-sub" id="detailSub">—</p>
+        </div>
+        <div class="table-controls">
+          <label class="search-wrap">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+            <input id="searchInput" type="search" placeholder="Buscar apartamento..." autocomplete="off" disabled />
+          </label>
+          <div class="toggle-group" role="group" aria-label="Filtro de apartamentos">
+            <button class="toggle-btn active" data-filter="all" type="button">Todos</button>
+            <button class="toggle-btn" data-filter="inactive" type="button">Solo inactivos</button>
+            <button class="toggle-btn" data-filter="active" type="button">Solo activos</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="table-scroll">
+        <table class="detail-table">
+          <thead>
+            <tr>
+              <th>Apartamento</th>
+              <th>Estado</th>
+              <th class="num">Módulos usados</th>
+              <th>Módulos activos</th>
+            </tr>
+          </thead>
+          <tbody id="detailTableBody">
+            <tr><td colspan="4" class="empty-cell">—</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="table-foot">
+        <span id="pagerInfo">—</span>
+        <div class="pager">
+          <button id="prevPage" type="button" disabled>← Anterior</button>
+          <span id="pagerCurrent">1</span>
+          <button id="nextPage" type="button" disabled>Siguiente →</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>DomoNow · Dashboard interno de usabilidad. Avance general = unidades con actividad en al menos 1 de 5 módulos: Accesos, Solicitudes, Reservas, Alertas y Paquetería. El histórico se conserva localmente en IndexedDB.</footer>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <div class="busy" id="busy" hidden>
+    <div class="spinner" aria-hidden="true"></div>
+    <span id="busyText">Procesando archivos…</span>
+  </div>
+</body>
+</html>
